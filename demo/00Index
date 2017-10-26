@@ -1,0 +1,10 @@
+alarm		Learning the ALARM network
+breast  	Import and process the breast cancer data
+novartis	Import and process Novartis multi-tissue data
+dirprob		Utilizing perturbations for constructing node order priors
+test		Miscellaneous
+diabetesLoad	Importing the Diabetes data
+diabetes	Analysis of Diabetes data
+lungLoad	Importing the Lung cancer data
+lung		Analysis of Lung cancer data
+cvKfold		Cross-validation classification
