@@ -1,6 +1,6 @@
 /*
  *  catnet : categorical Bayesian network inference
- *  Copyright (C) 2009--2010  Nikolay Balov
+ *  Copyright (C) 2009--2017  Nikolay Balov
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.1  12dec2016
+ * version 1.15.4  31oct2017
  */
 
 #include "utils.h"
@@ -176,7 +176,7 @@ SEXP RCatnet::genRcatnet(const char * objectName = (const char*)"catNetwork") {
 	char str[256];
 	int node, i, *pslotcats, *pn;
 	double *pf, floglik;
-	SEXP plist, ppars, pcats, pnodeprobs, strnames, pint;
+	SEXP plist, ppars, pcats, pnodeprobs, strnames, pint, pstr;
 
 	if(strcmp(objectName, "catNetwork") && strcmp(objectName, "catNetworkC") ) 
 		return R_NilValue;
@@ -283,7 +283,9 @@ SEXP RCatnet::genRcatnet(const char * objectName = (const char*)"catNetwork") {
 	if (pslotcats)
 		CATNET_FREE(pslotcats);
 
-	SET_SLOT(cnet, install("meta"), mkString("catNetwork object"));
+	pstr = PROTECT(mkString("catNetwork object"));
+	SET_SLOT(cnet, install("meta"), pstr);
+	UNPROTECT(1); /* pstr */
 
 	PROTECT(pint = NEW_INTEGER(1));
 	INTEGER_POINTER(pint)[0] = complexity();
