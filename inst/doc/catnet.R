@@ -189,7 +189,7 @@ netlist <- cnSearchSA(data=samples, perturbations=NULL,
 	maxParentSet=2, parentSizes=NULL, maxComplexity=20, 
 	parentsPool=NULL, fixedParents=NULL, 
 	tempStart=1, tempCoolFact = 0.9, tempCheckOrders = 4, maxIter = 40, 
-	orderShuffles = 1, stopDiff = 0.0001,
+	orderShuffles = 1, stopDiff = 0.0001, numThreads = 1, 
 	priorSearch=NULL)
 bnet <- cnFind(netlist@nets, cnComplexity(cnet6))
 bnet
@@ -234,7 +234,7 @@ res9 <- cnSearchSA(data=ps, perturbations=NULL,
                     selectMode = "BIC", 
                     tempStart = 1, tempCoolFact = 0.9, tempCheckOrders = 20, 
                     maxIter = 100, orderShuffles = -1, stopDiff = 1,
-                    numThreads = 2, 
+                    numThreads = 1, 
                     priorSearch = NULL,
                     echo=FALSE)
 anet9 <- cnFind(res9, cnComplexity(cnet8))
@@ -268,8 +268,8 @@ ps <- cnSamples(cn, numsamples, pert, as.index=TRUE)
 klmat <- cnEdgeDistanceKL(ps, pert)
 fscore1 <- NULL
 fscore2 <- NULL
-for(ntrials in 1:5) {
-  numiter <- 60
+for(ntrials in 1:4) {
+  numiter <- 50
   sares1 <- cnSearchSA(data=ps, perturbations=pert, maxParentSet=2,
                        parentSizes=NULL, maxComplexity=0,
                        parentsPool=NULL, fixedParents=NULL,
@@ -277,7 +277,7 @@ for(ntrials in 1:5) {
                        tempStart=0.1, tempCoolFact=0.9, tempCheckOrders=numiter,
                        maxIter=numiter, 
                        orderShuffles=0, stopDiff=0,
-                       numThreads=2, priorSearch=NULL, echo=FALSE)
+                       numThreads=1, priorSearch=NULL, echo=FALSE)
   cmp <- cnCompare(cn, cnFind(sares1, cnComplexity(cn)))
   fscore1 <- c(fscore1, cmp@fscore)
   sares2 <- cnSearchSA(data=ps, perturbations=pert, maxParentSet=2,
@@ -287,7 +287,7 @@ for(ntrials in 1:5) {
                        tempStart=0.1, tempCoolFact=0.9, tempCheckOrders=numiter,
                        maxIter=numiter, 
                        orderShuffles=0, stopDiff=0,
-                       numThreads=2, priorSearch=NULL, echo=FALSE)
+                       numThreads=1, priorSearch=NULL, echo=FALSE)
   cmp <- cnCompare(cn, cnFind(sares2, cnComplexity(cn)))
   fscore2 <- c(fscore2, cmp@fscore)
 }
