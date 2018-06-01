@@ -648,7 +648,8 @@ SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations)
 	PROTECT(rvec = NEW_NUMERIC(nnodes));
 	pvec = NUMERIC_POINTER(rvec);
 
-	for(i = 0; i < nnodes; i++) { 
+	floglik = 0;
+	for(i = 0; i < nnodes; i++) {
 		nnode = pnodes[i] - 1;
 		psubSamples = 0;
 		pPerturbations = 0;
