@@ -84,7 +84,7 @@ setMethod("cnJointProb", "catNetwork",
               })
             nodes <- as.integer(nodes)
             for(node in nodes)
-              if(node < 0 || nodes > object@numnodes)
+              if(node < 1 || node > object@numnodes)
                 stop("Invalid nodes")
               
             pmat <- NULL
@@ -145,7 +145,7 @@ setMethod("cnCondProb", "catNetwork",
             vals <- c(x, y)
             for(i in 1:length(nodes)) {
               node <- nodes[i]
-              if(node < 0 || nodes > object@numnodes)
+              if(node < 1 || node > object@numnodes)
                 stop("Invalid nodes")
               if(is.character(vals[i])) {
                 id <- which(object@categories[[node]] == vals[i])
