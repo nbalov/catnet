@@ -138,7 +138,7 @@ SEXP catnetEntropyPairwise(SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -350,7 +350,7 @@ SEXP catnetEntropyOrder(SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -581,7 +581,7 @@ SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -806,7 +806,7 @@ SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -1032,7 +1032,7 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 

@@ -477,7 +477,7 @@ SEXP catnetSetProb(SEXP cnet, SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -560,7 +560,7 @@ SEXP catnetLoglik(SEXP cnet, SEXP rSamples, SEXP rPerturbations, SEXP rBySample)
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 	}
 
 	if(bysample)
@@ -662,7 +662,7 @@ SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations)
 		floglik = -FLT_MAX;
 		if(!isNull(rPerturbations)) {
 			PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-			pPerturbations = INTEGER(rPerturbations);
+			pPerturbations = INTEGER_POINTER(rPerturbations);
 			psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 			if (psubSamples) {
 				numsubsamples = 0;

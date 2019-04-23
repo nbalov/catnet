@@ -563,7 +563,7 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 	}
 
 	GetRNGstate();
@@ -630,8 +630,9 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 	}
 	PutRNGstate();
 
-	if(!isNull(rPerturbations))
-		UNPROTECT(1);
+	if(!isNull(rPerturbations)) {
+		UNPROTECT(1); // rPerturbations
+	}
 
 	if(pnodesample)
 		CATNET_FREE(pnodesample);		
