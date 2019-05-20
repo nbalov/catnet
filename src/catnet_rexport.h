@@ -18,7 +18,7 @@
  */
 
 /* 
- * version 1.15.1  12dec2016
+ * version 1.15.6  20may2019
  */
 
 #include <Rinternals.h>
@@ -37,15 +37,14 @@ SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations,
 				SEXP rMaxParents, SEXP rParentSizes, 
 				SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
 				SEXP rParentsPool, SEXP rFixedParentsPool, 
-				SEXP rUseCache, SEXP rEcho);
-
+				SEXP rMatEdgeLiks, SEXP rUseCache, SEXP rEcho);
 SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations, 
 			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
 			SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
 			SEXP rMatEdgeLiks, SEXP rDirProbs, 
 			SEXP rModel, SEXP rStartOrder,
 			SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
-			SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, SEXP rStopTime,  
+			SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
 			SEXP rThreads, SEXP rUseCache, SEXP rEcho);
 SEXP catnetParHistogram(SEXP rSamples, SEXP rPerturbations, 
 			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 

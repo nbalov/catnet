@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.5  20mar2019
+ * version 1.15.6  20may2019
  */
 
 #include "utils.h"
@@ -275,9 +275,10 @@ SEXP showCatnet(SEXP cnet)
 }
 
 SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
-                              SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
-                              SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
-                              SEXP rUseCache, SEXP rEcho) {
+                              SEXP rMaxParents, SEXP rParentSizes, 
+							  SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
+                              SEXP rParentsPool, SEXP rFixedParentsPool, 
+							  SEXP rMatEdgeLiks, SEXP rUseCache, SEXP rEcho) {
 
 	//if(!isMatrix(rSamples))
 	//	error("Data is not a matrix");
