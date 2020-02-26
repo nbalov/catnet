@@ -17,6 +17,6 @@ Collate: catnet.class.R catnet.def.R graph2catnet.R catnet.dags.R
         zzz.R
 LazyLoad: yes
 Repository: CRAN
-Date/Publication: 2018-03-20 18:37:00
-Packaged: 2018-03-20 18:37:00 UTC; root
+Date/Publication: 2019-04-23 18:37:00
+Packaged: 2019-04-23 18:37:00 UTC; root
 NeedsCompilation: yes

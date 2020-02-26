@@ -25,7 +25,11 @@
  */
 
 /* 
+<<<<<<< HEAD
  * version 1.15.6  25feb2020
+=======
+ * version 1.15.6  20may2019
+>>>>>>> fc5dfb4a994ceb6fa8743220098f9d43937f60fa
  */
 
 #include "utils.h"
@@ -272,10 +276,17 @@ SEXP showCatnet(SEXP cnet)
 }
 
 SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
+<<<<<<< HEAD
 	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, 
 	SEXP rOrder, SEXP rNodeCats, 
 	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
 	SEXP rUseCache, SEXP rEcho) {
+=======
+                              SEXP rMaxParents, SEXP rParentSizes, 
+							  SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
+                              SEXP rParentsPool, SEXP rFixedParentsPool, 
+							  SEXP rMatEdgeLiks, SEXP rUseCache, SEXP rEcho) {
+>>>>>>> fc5dfb4a994ceb6fa8743220098f9d43937f60fa
 
 	//if(!isMatrix(rSamples))
 	//	error("Data is not a matrix");
@@ -476,7 +487,7 @@ SEXP catnetSetProb(SEXP cnet, SEXP rSamples, SEXP rPerturbations) {
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
 
@@ -559,7 +570,7 @@ SEXP catnetLoglik(SEXP cnet, SEXP rSamples, SEXP rPerturbations, SEXP rBySample)
 	pPerturbations = 0;
 	if(!isNull(rPerturbations)) {
 		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER(rPerturbations);
+		pPerturbations = INTEGER_POINTER(rPerturbations);
 	}
 
 	if(bysample)
@@ -661,7 +672,7 @@ SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations)
 		floglik = -FLT_MAX;
 		if(!isNull(rPerturbations)) {
 			PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-			pPerturbations = INTEGER(rPerturbations);
+			pPerturbations = INTEGER_POINTER(rPerturbations);
 			psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 			if (psubSamples) {
 				numsubsamples = 0;

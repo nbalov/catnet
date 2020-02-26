@@ -333,7 +333,7 @@ SEXP RCatnetSearchHist::search(SEXP rSamples, SEXP rPerturbations,
 
 		if(!isNull(rPerturbations)) {
 			pPerturbations = m_pSearchParams[n]->m_pPerturbations;
-			pRperturbations = INTEGER(rPerturbations);
+			pRperturbations = INTEGER_POINTER(rPerturbations);
 			for(j = 0; j < m_numSamples; j++) {
 				for(i = 0; i < m_numNodes; i++)
 					pPerturbations[j*m_numNodes + i] = pRperturbations[j*m_numNodes + m_pTestOrder[n][i] - 1];
