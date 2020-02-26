@@ -18,7 +18,7 @@
  */
 
 /* 
- * version 1.15.1  12dec2016
+ * version 1.15.6  25feb2020
  */
 
 #include <Rinternals.h>
@@ -33,25 +33,25 @@ SEXP catnetMarginalProb(SEXP cnet, SEXP rnode);
 SEXP catnetJointProb(SEXP cnet, SEXP rnode);
 SEXP catnetFindParentPool(SEXP cnet, SEXP rnode);
 SEXP showCatnet(SEXP cnet);
-SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations,
-				SEXP rMaxParents, SEXP rParentSizes, 
-				SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
-				SEXP rParentsPool, SEXP rFixedParentsPool, 
-				SEXP rUseCache, SEXP rEcho);
-
+SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
+	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, 
+	SEXP rOrder, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
+	SEXP rUseCache, SEXP rEcho);
 SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations, 
-			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-			SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
-			SEXP rMatEdgeLiks, SEXP rDirProbs, 
-			SEXP rModel, SEXP rStartOrder,
-			SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
-			SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, SEXP rStopTime,  
-			SEXP rThreads, SEXP rUseCache, SEXP rEcho);
+	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
+	SEXP rMatEdgeLiks, SEXP rDirProbs, 
+	SEXP rModel, SEXP rStartOrder,
+	SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
+	SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
+	SEXP rThreads, SEXP rUseCache, SEXP rEcho);
 SEXP catnetParHistogram(SEXP rSamples, SEXP rPerturbations, 
-			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-			SEXP rParentsPool, SEXP rFixedParentsPool, 
-			SEXP rScore, SEXP rWeight, SEXP rMaxIter,
-			SEXP rThreads, SEXP rUseCache, SEXP rEcho);
+	SEXP rMaxParents, SEXP rParentSizes, 
+	SEXP rMaxComplexity, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, 
+	SEXP rScore, SEXP rWeight, SEXP rMaxIter,
+	SEXP rThreads, SEXP rUseCache, SEXP rEcho);
 SEXP catnetLoglik(SEXP cnet, SEXP rSamples, SEXP rPerturbations, SEXP rBySample);
 SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations);
 SEXP catnetSetProb(SEXP cnet, SEXP rSamples, SEXP rPerturbations);

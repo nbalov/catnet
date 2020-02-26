@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.5  20mar2019
+ * version 1.15.6  25feb2020
  */
 
 #include "utils.h"
@@ -182,7 +182,7 @@ SEXP catnetFindParentPool(SEXP cnet, SEXP rnode)
 
 SEXP show_catnet(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist)
 {
-	int i, m_numNodes, nnode;
+	int i, nlen, m_numNodes, nnode;
 	char *strbuff;
 	SEXP pf, pstr;
 
@@ -199,42 +199,39 @@ SEXP show_catnet(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist)
 		return R_NilValue;
 	}
 
-	sprintf(strbuff, "Nodes = %d: ", m_numNodes);
-
+	nlen = sprintf(strbuff, "Nodes = %d: ", m_numNodes);
 	for(nnode = 0; nnode < m_numNodes; nnode++) {
 		PROTECT(pf = VECTOR_ELT(rnodes, nnode));
 		if(IS_VECTOR(pf)) {
-			sprintf(strbuff, "%s%s, ", strbuff, CHAR(STRING_ELT(pf, 0)));
+			nlen += sprintf(strbuff+nlen, "%s, ", CHAR(STRING_ELT(pf, 0)));
 		}
 		UNPROTECT(1);
 	}
-	sprintf(strbuff, "%s\n", strbuff);
+	nlen += sprintf(strbuff+nlen, "\n");
 	SET_STRING_ELT(pstr, 0, mkChar(strbuff));
 
-	sprintf(strbuff, "Parents:\n");
-
+	nlen = sprintf(strbuff, "Parents:\n");
 	for(nnode = 0; nnode < m_numNodes; nnode++) {
 		PROTECT(pf = VECTOR_ELT(rparents, nnode));
-		sprintf(strbuff, "%s[%d] ", strbuff, nnode);
+		nlen += sprintf(strbuff+nlen, "[%d] ", nnode);
 		if(IS_VECTOR(pf)) {
 			for(i = 0; i < length(pf); i++)
-				sprintf(strbuff, "%s%d, ", strbuff, INTEGER_POINTER(pf)[i]-1);
-			sprintf(strbuff, "%s\n", strbuff);
+				nlen += sprintf(strbuff+nlen, "%d, ", INTEGER_POINTER(pf)[i]-1);
+			nlen += sprintf(strbuff+nlen, "\n");
 		}
-		else
-			sprintf(strbuff, "%s\n", strbuff);
+		else 
+			nlen += sprintf(strbuff+nlen, "\n");
 		UNPROTECT(1);
 	}
 	SET_STRING_ELT(pstr, 1, mkChar(strbuff));
 
-	sprintf(strbuff, "Categories:\n");
-
+	nlen = sprintf(strbuff, "Categories:\n");
 	for(nnode = 0; nnode < m_numNodes; nnode++) {
 		PROTECT(pf = VECTOR_ELT(rcatlist, nnode));
 		if(IS_VECTOR(pf)) {
 			for(i = 0; i < length(pf); i++)
-				sprintf(strbuff, "%s%s, ", strbuff, CHAR(STRING_ELT(pf,i)));
-			sprintf(strbuff, "%s\n", strbuff);
+				nlen += sprintf(strbuff+nlen, "%s, ", CHAR(STRING_ELT(pf,i)));
+			nlen += sprintf(strbuff+nlen, "\n");
 		}
 		UNPROTECT(1);
 	}
@@ -275,9 +272,10 @@ SEXP showCatnet(SEXP cnet)
 }
 
 SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
-                              SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
-                              SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
-                              SEXP rUseCache, SEXP rEcho) {
+	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, 
+	SEXP rOrder, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
+	SEXP rUseCache, SEXP rEcho) {
 
 	//if(!isMatrix(rSamples))
 	//	error("Data is not a matrix");
@@ -320,13 +318,13 @@ SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations,
 }
 
 SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations, 
-			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-			SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
-			SEXP rMatEdgeLiks, SEXP rDirProbs, 
-			SEXP rModel, SEXP rStartOrder,
-			SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
-			SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
-			SEXP rThreads, SEXP rUseCache, SEXP rEcho) {
+	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
+	SEXP rMatEdgeLiks, SEXP rDirProbs, 
+	SEXP rModel, SEXP rStartOrder,
+	SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
+	SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
+	SEXP rThreads, SEXP rUseCache, SEXP rEcho) {
 
 	//if(!isMatrix(rSamples))
 	//	error("Data is not a matrix");
@@ -390,10 +388,11 @@ SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations,
 }
 
 SEXP catnetParHistogram(SEXP rSamples, SEXP rPerturbations, 
-			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-			SEXP rParentsPool, SEXP rFixedParentsPool, 
-			SEXP rScore, SEXP rWeight, SEXP rMaxIter,
-			SEXP rThreads, SEXP rUseCache, SEXP rEcho)
+	SEXP rMaxParents, SEXP rParentSizes, 
+	SEXP rMaxComplexity, SEXP rNodeCats, 
+	SEXP rParentsPool, SEXP rFixedParentsPool, 
+	SEXP rScore, SEXP rWeight, SEXP rMaxIter,
+	SEXP rThreads, SEXP rUseCache, SEXP rEcho)
 {
 	//if(!isMatrix(rSamples))
 	//	error("Data is not a matrix");
