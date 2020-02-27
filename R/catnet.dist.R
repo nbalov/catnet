@@ -71,7 +71,7 @@ setMethod("show", "catNetworkDistance",
                   object@fn,
                   object@fscore)
             cat(str, "\n")
-            return(str)
+            invisible(str)
             })
 
 setMethod("initialize", "catNetworkEvaluate", 
@@ -114,7 +114,7 @@ setMethod("show", "catNetworkEvaluate",
                   length(object@nets),
                   object@time)
             cat(str, "\n")
-            return(str)
+            invisible(str)
             })
 
 setMethod("cnPlot", "catNetworkEvaluate",
