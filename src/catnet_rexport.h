@@ -18,11 +18,7 @@
  */
 
 /* 
-<<<<<<< HEAD
  * version 1.15.6  25feb2020
-=======
- * version 1.15.6  20may2019
->>>>>>> fc5dfb4a994ceb6fa8743220098f9d43937f60fa
  */
 
 #include <Rinternals.h>
@@ -37,7 +33,6 @@ SEXP catnetMarginalProb(SEXP cnet, SEXP rnode);
 SEXP catnetJointProb(SEXP cnet, SEXP rnode);
 SEXP catnetFindParentPool(SEXP cnet, SEXP rnode);
 SEXP showCatnet(SEXP cnet);
-<<<<<<< HEAD
 SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
 	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, 
 	SEXP rOrder, SEXP rNodeCats, 
@@ -51,21 +46,6 @@ SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations,
 	SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
 	SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
 	SEXP rThreads, SEXP rUseCache, SEXP rEcho);
-=======
-SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations,
-				SEXP rMaxParents, SEXP rParentSizes, 
-				SEXP rMaxComplexity, SEXP rOrder, SEXP rNodeCats, 
-				SEXP rParentsPool, SEXP rFixedParentsPool, 
-				SEXP rMatEdgeLiks, SEXP rUseCache, SEXP rEcho);
-SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations, 
-			SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-			SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
-			SEXP rMatEdgeLiks, SEXP rDirProbs, 
-			SEXP rModel, SEXP rStartOrder,
-			SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
-			SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
-			SEXP rThreads, SEXP rUseCache, SEXP rEcho);
->>>>>>> fc5dfb4a994ceb6fa8743220098f9d43937f60fa
 SEXP catnetParHistogram(SEXP rSamples, SEXP rPerturbations, 
 	SEXP rMaxParents, SEXP rParentSizes, 
 	SEXP rMaxComplexity, SEXP rNodeCats, 
