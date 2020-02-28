@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.1  12dec2016
+ * version 1.15.6  25feb2020
  */
 
 #include "utils.h"
@@ -136,8 +136,8 @@ SEXP catnetEntropyPairwise(SEXP rSamples, SEXP rPerturbations) {
 
 	psubSamples = 0;
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
@@ -204,9 +204,7 @@ SEXP catnetEntropyPairwise(SEXP rSamples, SEXP rPerturbations) {
 		}
 	}
 
-	UNPROTECT(1); //rSamples
-	if(!isNull(rPerturbations))
-		UNPROTECT(1); //rPerturbations
+	UNPROTECT(2); // rSamples, rPerturbations
 
 	if(psubSamples)
 		CATNET_FREE(psubSamples);
@@ -348,8 +346,8 @@ SEXP catnetEntropyOrder(SEXP rSamples, SEXP rPerturbations) {
 
 	psubSamples = 0;
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
@@ -416,9 +414,7 @@ SEXP catnetEntropyOrder(SEXP rSamples, SEXP rPerturbations) {
 		}
 	}
 
-	UNPROTECT(1); //rSamples
-	if(!isNull(rPerturbations))
-		UNPROTECT(1); //rPerturbations
+	UNPROTECT(2); // rSamples, rPerturbations
 
 	if(psubSamples)
 		CATNET_FREE(psubSamples);
@@ -567,20 +563,20 @@ SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations) {
 	pprobs2 = (double*)CATNET_MALLOC(maxCategories*maxCategories*sizeof(double));
 
 	if (!pprobs1 || !pprobs2) {
+		UNPROTECT(1); //rSamples
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
 		if (pprobs1)
 			CATNET_FREE(pprobs1);
 		if (pprobs2)
 			CATNET_FREE(pprobs2);
-		UNPROTECT(1); //rSamples
 		return rvec;
 	}
 
 	pSamplesPert = 0;
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
@@ -591,7 +587,7 @@ SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations) {
 		CATNET_FREE(pNodeCats);
 		CATNET_FREE(pprobs1);
 		CATNET_FREE(pprobs2);
-		UNPROTECT(1); //rSamples
+		UNPROTECT(2); // rSamples, rPerturbations
 		return rvec;
 	}
 
@@ -658,9 +654,7 @@ SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations) {
 		}
 	}
 
-	UNPROTECT(1); //rSamples
-	if(!isNull(rPerturbations))
-		UNPROTECT(1); //rPerturbations
+	UNPROTECT(2); // rSamples, rPerturbations
 
 	if(pSamplesPert)
 		CATNET_FREE(pSamplesPert);
@@ -792,20 +786,20 @@ SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations) {
 	pprobs1 = (double*)CATNET_MALLOC(maxCategories*maxCategories*sizeof(double));
 	pprobs2 = (double*)CATNET_MALLOC(maxCategories*maxCategories*sizeof(double));
 	if (!pprobs1 || !pprobs2) {
+		UNPROTECT(1); //rSamples
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
 		if (pprobs1)
 			CATNET_FREE(pprobs1);
 		if (pprobs2)
 			CATNET_FREE(pprobs2);
-		UNPROTECT(1); //rSamples
 		return rvec;
 	}
 
 	pSamplesPert = 0;
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
@@ -816,7 +810,7 @@ SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations) {
 		CATNET_FREE(pNodeCats);
 		CATNET_FREE(pprobs1);
 		CATNET_FREE(pprobs2);
-		UNPROTECT(1); //rSamples
+		UNPROTECT(2); //rSamples, rPerturbations
 		return rvec;
 	}
 	
@@ -878,9 +872,7 @@ SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations) {
 		}
 	}
 
-	UNPROTECT(1); //rSamples
-	if(!isNull(rPerturbations))
-		UNPROTECT(1); //rPerturbations
+	UNPROTECT(2); //rSamples, rPerturbations
 
 	if(pSamplesPert)
 		CATNET_FREE(pSamplesPert);
@@ -1011,8 +1003,6 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 	if (!pprobs) {
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
-		if(!isNull(rPerturbations))
-			UNPROTECT(1); //rPerturbations
 		return 0;
 	}
 
@@ -1021,8 +1011,6 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
 		CATNET_FREE(pprobs);
-		if(!isNull(rPerturbations))
-			UNPROTECT(1); //rPerturbations
 		return 0;	
 	}
 
@@ -1030,8 +1018,8 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 
 	pSamplesPert = 0;
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 		pSamplesPert = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
 	}
@@ -1101,8 +1089,7 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 			 matPairs[nnode1*numnodes + nnode2] = (matPairs[nnode1*numnodes + nnode2] - fmin)*fsum; 
 	}
 
-	if(!isNull(rPerturbations))
-		UNPROTECT(1); //rPerturbations
+	UNPROTECT(1); //rPerturbations
 
 	if(pSamplesPert)
 		CATNET_FREE(pSamplesPert);
@@ -1130,4 +1117,3 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 	return matPairs;
 
 }
-

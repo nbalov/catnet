@@ -186,18 +186,17 @@ SEXP show_catnet(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist)
 	char *strbuff;
 	SEXP pf, pstr;
 
-	PROTECT(rnodes = AS_LIST(rnodes));
-	PROTECT(rparents = AS_LIST(rparents));
-	PROTECT(rcatlist = AS_LIST(rcatlist));
-	PROTECT(rproblist = AS_LIST(rproblist));
-
-	PROTECT(pstr = allocVector(STRSXP, 3));
-
 	m_numNodes = length(rnodes);
 	strbuff = (char*)CATNET_MALLOC(16+m_numNodes*m_numNodes*(2+MAX_NODE_NAME));
 	if (!strbuff) {
 		return R_NilValue;
 	}
+
+	PROTECT(rnodes = AS_LIST(rnodes));
+	PROTECT(rparents = AS_LIST(rparents));
+	PROTECT(rcatlist = AS_LIST(rcatlist));
+	PROTECT(rproblist = AS_LIST(rproblist));
+	PROTECT(pstr = allocVector(STRSXP, 3));
 
 	nlen = sprintf(strbuff, "Nodes = %d: ", m_numNodes);
 	for(nnode = 0; nnode < m_numNodes; nnode++) {

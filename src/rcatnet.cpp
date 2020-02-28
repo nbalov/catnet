@@ -561,8 +561,8 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 	}
 
 	pPerturbations = 0;
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 	}
 
@@ -630,9 +630,7 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 	}
 	PutRNGstate();
 
-	if(!isNull(rPerturbations)) {
-		UNPROTECT(1); // rPerturbations
-	}
+	UNPROTECT(1); // rPerturbations
 
 	if(pnodesample)
 		CATNET_FREE(pnodesample);		
@@ -650,6 +648,3 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 
 	return rsamples;
 }
-
-
-
