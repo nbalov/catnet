@@ -49,12 +49,12 @@ SEXP catnetEntropyPairwise(SEXP rSamples, SEXP rPerturbations) {
 	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
 		error("Perturbations should be a matrix");
 
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-	if (!pSamples) {
-		UNPROTECT(1); //rSamples
+	if(isNull(rSamples)) {
 		return rvec;
 	}
+	PROTECT(rSamples = AS_INTEGER(rSamples));
+	pSamples = INTEGER(rSamples);
+	
 	dim = GET_DIM(rSamples);
 	numnodes = INTEGER(dim)[0];
 	numsamples = INTEGER(dim)[1];
@@ -256,12 +256,12 @@ SEXP catnetEntropyOrder(SEXP rSamples, SEXP rPerturbations) {
 	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
 		error("Perturbations should be a matrix");
 
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-	if (!pSamples) {
-		UNPROTECT(1); //rSamples
+	if(isNull(rSamples)) {
 		return rvec;
 	}
+	PROTECT(rSamples = AS_INTEGER(rSamples));
+	pSamples = INTEGER(rSamples);
+	
 	dim = GET_DIM(rSamples);
 	numnodes = INTEGER(dim)[0];
 	numsamples = INTEGER(dim)[1];
@@ -482,13 +482,12 @@ SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations) {
 	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
 		error("Perturbations should be a matrix");
 
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-	if (!pSamples) {
-		UNPROTECT(1); //rSamples
+	if(isNull(rSamples)) {
 		return rvec;
 	}
-
+	PROTECT(rSamples = AS_INTEGER(rSamples));
+	pSamples = INTEGER(rSamples);
+	
 	dim = GET_DIM(rSamples);
 	numnodes = INTEGER(dim)[0];
 	numsamples = INTEGER(dim)[1];	
@@ -706,13 +705,12 @@ SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations) {
 	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
 		error("Perturbations should be a matrix");
 
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-	if (!pSamples) {
-		UNPROTECT(1); //rSamples
+	if(isNull(rSamples)) {
 		return rvec;
 	}
-
+	PROTECT(rSamples = AS_INTEGER(rSamples));
+	pSamples = INTEGER(rSamples);
+	
 	dim = GET_DIM(rSamples);
 	numnodes = INTEGER(dim)[0];
 	numsamples = INTEGER(dim)[1];	
@@ -927,13 +925,12 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
 		error("Perturbations should be a matrix");
 
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pRSamples = INTEGER(rSamples);
-	if (!pRSamples) {
-		UNPROTECT(1); //rSamples
+	if(isNull(rSamples)) {
 		return 0;
 	}
-
+	PROTECT(rSamples = AS_INTEGER(rSamples));
+	pRSamples = INTEGER(rSamples);
+	
 	dim = GET_DIM(rSamples);
 	numnodes = INTEGER(dim)[0];
 	numsamples = INTEGER(dim)[1];	
@@ -953,10 +950,13 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 
 	// categoies
 	pNodeNumCats = (int*)CATNET_MALLOC(numnodes*sizeof(int));
-	if (!pNodeNumCats)
+	if (!pNodeNumCats) {
+		CATNET_FREE(pSamples);
 		return 0;
+	}
 	pNodeCats = (int**)CATNET_MALLOC(numnodes*sizeof(int*));
 	if (!pNodeCats) {
+		CATNET_FREE(pSamples);
 		CATNET_FREE(pNodeNumCats);
 		return 0;
 	}
@@ -1001,6 +1001,7 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 
 	pprobs = (double*)CATNET_MALLOC(maxCategories*maxCategories*sizeof(double));
 	if (!pprobs) {
+		CATNET_FREE(pSamples);
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
 		return 0;
@@ -1008,6 +1009,7 @@ double *catnetPairwiseCondLikelihood(SEXP rSamples, SEXP rPerturbations) {
 
 	matPairs = (double*)CATNET_MALLOC(numnodes*numnodes*sizeof(double));
 	if (!matPairs) {
+		CATNET_FREE(pSamples);
 		CATNET_FREE(pNodeNumCats);
 		CATNET_FREE(pNodeCats);
 		CATNET_FREE(pprobs);

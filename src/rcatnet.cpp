@@ -367,7 +367,6 @@ char *gen_prob_string(int node, SEXP parlist, int paridx, SEXP catlist, SEXP pro
 		for(j = 0; j < length(pcats); j++) {
 			nlen += sprintf(newstr+nlen, "%s%s %f\n", str, CHAR(STRING_ELT(pcats, j)), NUMERIC_POINTER(problist)[j]);
 		}
-
 		CATNET_FREE(str);
 		str = newstr;
 		return str;
