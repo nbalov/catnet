@@ -46,8 +46,8 @@ Next, if a \code{pdf}-viewer is available, the created postscript or \code{pdf} 
 \author{N. Balov}
 
 \examples{
-  cnet <- cnRandomCatnet(numnodes=10, maxParents=3, numCategories=2)
-  cnDot(object=cnet, file="cnet")
+  #cnet <- cnRandomCatnet(numnodes=10, maxParents=3, numCategories=2)
+  #cnDot(object=cnet, file="cnet")
 }
 
 \seealso{\code{\link{catnet-package}}, \code{\link{cnPlot}} }

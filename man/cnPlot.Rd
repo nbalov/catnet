@@ -48,9 +48,9 @@ and the false positive (\code{fp}) and false negative (\code{fn}) edges vs. comp
 \author{N. Balov}
 \examples{
   ## Set R_CATNET_USE_IGRAPH to TRUE if you want to use 'igraph'
-  Sys.setenv(R_CATNET_USE_IGRAPH=FALSE)
-  cnet <- cnRandomCatnet(numnodes=10, maxParents=3, numCategories=2)
-  cnPlot(object=cnet)
+  #Sys.setenv(R_CATNET_USE_IGRAPH=FALSE)
+  #cnet <- cnRandomCatnet(numnodes=10, maxParents=3, numCategories=2)
+  #cnPlot(object=cnet)
 }
 
 \keyword{methods}
