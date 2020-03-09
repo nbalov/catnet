@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.6  25feb2020
+ * version 1.15.7  09mar2020
  */
 
 #include "utils.h"
@@ -671,9 +671,9 @@ SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations)
 					}
 				}
 				floglik = rnet->sampleNodeLoglik(nnode, psubSamples, numsubsamples);
-				UNPROTECT(1);
 				CATNET_FREE(psubSamples);
 			}
+			UNPROTECT(1);
 		}
 		else
 			floglik = rnet->sampleNodeLoglik(nnode, pSamples, numsamples);
@@ -682,8 +682,8 @@ SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations)
 		if(floglik > -FLT_MAX)
 			pvec[i] =  floglik;
 	}
-	UNPROTECT(1); // rSamples
-	UNPROTECT(1); // rvec
+
+	UNPROTECT(2); // rSamples, rvec
 
 	delete rnet;
 	CATNET_FREE(pnodes);
