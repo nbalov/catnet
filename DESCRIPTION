@@ -1,6 +1,6 @@
 Package: catnet
 Title: Categorical Bayesian Network Inference
-Version: 1.15.8
+Version: 1.16.0
 Author: c(person("Nikolay","Balov",role=c("aut","cre"), email="nhbalov@gmail.com", comment = "Balov (2013) <doi:10.1214/13-EJS802>"), person("Peter","Salzman",role=c("aut")))
 Maintainer: Nikolay Balov <nhbalov@gmail.com>
 Description: Structure learning and parameter estimation of discrete Bayesian networks using likelihood-based criteria.  Exhaustive search for fixed node orders and stochastic search of optimal orders via simulated annealing algorithm are implemented. 

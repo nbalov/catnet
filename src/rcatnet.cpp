@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.8  23oct2022
+ * version 1.16.0  23oct2022
  */
 
 #include "utils.h"
@@ -559,7 +559,7 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 		}
 	}
 
-    PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	pPerturbations = NULL;
 	if(!isNull(rPerturbations)) {
 		pPerturbations = INTEGER_POINTER(rPerturbations);
