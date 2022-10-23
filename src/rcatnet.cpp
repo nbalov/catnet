@@ -25,7 +25,7 @@
  */
 
 /* 
- * version 1.15.7  09mar2020
+ * version 1.15.8  23oct2022
  */
 
 #include "utils.h"
@@ -559,9 +559,9 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 		}
 	}
 
+    PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 	pPerturbations = NULL;
 	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
 		pPerturbations = INTEGER_POINTER(rPerturbations);
 	}
 
@@ -629,9 +629,7 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 	}
 	PutRNGstate();
 
-	if(!isNull(rPerturbations)) {
-		UNPROTECT(1); // rPerturbations
-	}
+	UNPROTECT(1); // rPerturbations
 
 	if(pnodesample)
 		CATNET_FREE(pnodesample);		

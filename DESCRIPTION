@@ -1,7 +1,8 @@
 Package: catnet
 Title: Categorical Bayesian Network Inference
-Version: 1.15.7
-Authors@R: c(person("Nikolay","Balov",role=c("aut","cre"), email="nhbalov@gmail.com", comment = "Balov (2013) <doi:10.1214/13-EJS802>"), person("Peter","Salzman",role=c("aut")))
+Version: 1.15.8
+Author: c(person("Nikolay","Balov",role=c("aut","cre"), email="nhbalov@gmail.com", comment = "Balov (2013) <doi:10.1214/13-EJS802>"), person("Peter","Salzman",role=c("aut")))
+Maintainer: Nikolay Balov <nhbalov@gmail.com>
 Description: Structure learning and parameter estimation of discrete Bayesian networks using likelihood-based criteria.  Exhaustive search for fixed node orders and stochastic search of optimal orders via simulated annealing algorithm are implemented. 
 License: GPL (>= 2)
 Depends: R (>= 3.0.2)
@@ -16,6 +17,6 @@ Collate: catnet.class.R catnet.def.R graph2catnet.R catnet.dags.R
         zzz.R
 LazyLoad: yes
 Repository: CRAN
-Date/Publication: 2019-04-23 18:37:00
-Packaged: 2019-04-23 18:37:00 UTC; root
+Date/Publication: 2022-10-23 14:40:00
+Packaged: 2022-10-23 14:40:00 UTC; root
 NeedsCompilation: yes
