@@ -633,6 +633,7 @@ SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 
 	if(pnodesample)
 		CATNET_FREE(pnodesample);		
+	
 	if(porder)
 		CATNET_FREE(porder);
 
