@@ -1,6 +1,6 @@
 /*
  *  catnet : categorical Bayesian network inference
- *  Copyright (C) 2009--2010  Nikolay Balov
+ *  Copyright (C) 2009--2017  Nikolay Balov
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,721 +18,634 @@
  */
 
 /*
- * catnet_rexport.cpp
+ * rcatnet.cpp
  *
  *  Created on: Sep 21, 2009
  *      Author: nbalov
  */
 
 /* 
- * version 1.15.7  09mar2020
+ * version 1.16.0  23oct2022
  */
 
 #include "utils.h"
+#include "catnet_class.h"
 #include "rcatnet.h"
-#include "rcatnet_search.h"
-#include "rcatnet_sa.h"
-#include "rcatnet_hist.h"
 
-extern "C" {
+using namespace std;
 
-extern int g_setseed;
-extern size_t g_memcounter;
-
-SEXP catnetReleaseCache()
-{
-	ReleaseCache();
-	return R_NilValue;
+RCatnet::RCatnet() {
 }
 
-SEXP createRCatnet(SEXP cnet)
-{
-	SEXP pcnet = R_NilValue;
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-	pcnet = rnet->genRcatnet((const char*)"catNetwork");
-	delete rnet;
-	return pcnet;
-}
+RCatnet::RCatnet(SEXP cnet) {
 
-SEXP catnetMarginalProb(SEXP cnet, SEXP rnode)
-{
-	int node, i, ncats;
-	SEXP rvec = R_NilValue;
 	double *pvec;
+	int nnode, i, nvec, *pn;
+	char const *pstr;
 
-	if(!isInteger(AS_INTEGER(rnode)))
-		error("node should be an integer");
-	PROTECT(rnode = AS_INTEGER(rnode));
-	node = INTEGER_POINTER(rnode)[0];
-	UNPROTECT(1);
+	SEXP rname, rnodes, rparents, rcatlist, rproblist, pf, nodepars, nodeproblist, pint, rnodeprob;
 
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
+	if(!isS4(cnet))
+		return;
 
-	if(!rnet)
-		return rvec;
+	rname     = GET_SLOT(cnet, install("objectName"));
+	rnodes    = GET_SLOT(cnet, install("nodes"));
+	rparents  = GET_SLOT(cnet, install("parents"));
+	rcatlist  = GET_SLOT(cnet, install("categories"));
+	rproblist = GET_SLOT(cnet, install("probabilities"));
 
-	if(node < 1 || node > rnet->numNodes())
-		return rvec;
-	node--;
-
-	double *pmarg = rnet->marginal_prob(node);
-	if(!pmarg)
-		return rvec;
-
-	ncats = rnet->numCategories(node);
-	PROTECT(rvec = NEW_NUMERIC(ncats));
-	pvec = NUMERIC_POINTER(rvec);
-	for(i = 0; i < ncats; i++) {
-		pvec[i] = pmarg[i];
+	if(rnodes == R_NilValue || rparents == R_NilValue || rcatlist == R_NilValue || rproblist == R_NilValue) {
+		return;
 	}
-	UNPROTECT(1);
 
-	CATNET_FREE(pmarg);
-	delete rnet;
+	PROTECT(rname = AS_CHARACTER(rname));
+	PROTECT(rnodes = AS_LIST(rnodes));
+	PROTECT(rparents = AS_LIST(rparents));
+	PROTECT(rcatlist = AS_LIST(rcatlist));
+	PROTECT(rproblist = AS_LIST(rproblist));
 
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//printf(str);
+	pint = GET_SLOT(cnet, install("numnodes"));
+	m_numNodes = INTEGER_POINTER(pint)[0];
 
-	return rvec;
+	pint = GET_SLOT(cnet, install("maxParents"));
+	m_maxParents = INTEGER_POINTER(pint)[0];
+	pint = GET_SLOT(cnet, install("maxCategories"));
+	m_maxCategories = INTEGER_POINTER(pint)[0];
+
+	pint = GET_SLOT(cnet, install("complexity"));
+	m_complexity = INTEGER_POINTER(pint)[0];
+	pint = GET_SLOT(cnet, install("likelihood"));
+	m_loglik = NUMERIC_POINTER(pint)[0];
+
+	if (length(rproblist) != m_numNodes) {
+		UNPROTECT(5);
+		warning("length(rproblist) != m_numNodes");
+		return;
+	}
+	m_nodeNames = (char**) CATNET_MALLOC(m_numNodes * sizeof(char*));
+	m_numParents = (int*) CATNET_MALLOC(m_numNodes * sizeof(int));
+	m_parents = (int**) CATNET_MALLOC(m_numNodes * sizeof(int*));
+	m_numCategories = (int*) CATNET_MALLOC(m_numNodes * sizeof(int));
+	m_pProbLists = (PROB_LIST<double>**) CATNET_MALLOC(m_numNodes * sizeof(PROB_LIST<double>*));
+
+	if (!m_nodeNames || !m_numParents || !m_parents || !m_numCategories || !m_pProbLists) {
+		if (m_nodeNames)
+			CATNET_FREE(m_nodeNames);
+		m_nodeNames = 0;
+		if (m_numParents)
+			CATNET_FREE(m_numParents);
+		m_numParents = 0;
+		if (m_parents)
+			CATNET_FREE(m_parents);
+		m_parents = 0;
+		if (m_numCategories)
+			CATNET_FREE(m_numCategories);
+		m_numCategories = 0;
+		if (m_pProbLists)
+			CATNET_FREE(m_pProbLists);
+		m_pProbLists = 0;
+		UNPROTECT(5);
+		return;
+	}
+
+	memset(m_nodeNames,     0, m_numNodes * sizeof(char*));
+	memset(m_numParents,    0, m_numNodes * sizeof(int));
+	memset(m_parents,       0, m_numNodes * sizeof(int*));
+	memset(m_numCategories, 0, m_numNodes * sizeof(int));
+
+	for (i = 0; i < m_numNodes; i++)
+		m_pProbLists[i] = 0;
+	
+	for(nnode = 0; nnode < m_numNodes; nnode++) {
+		pf = VECTOR_ELT(rnodes, nnode);
+		m_nodeNames[nnode] = 0;
+		if(IS_VECTOR(pf)) {
+			pstr = CHAR(asChar(pf));
+			if(strlen(pstr) >= MAX_NODE_NAME) {
+				m_nodeNames[nnode] = (char*) CATNET_MALLOC((strlen(pstr)+1) * sizeof(char));
+				if (m_nodeNames[nnode] && pstr) 
+					strcpy(m_nodeNames[nnode], pstr);
+			}
+			else {
+				m_nodeNames[nnode] = (char*) CATNET_MALLOC(MAX_NODE_NAME * sizeof(char));
+				if (m_nodeNames[nnode])
+					sprintf(m_nodeNames[nnode], "N%d", nnode);
+			}
+		}
+
+		pf = VECTOR_ELT(rparents, nnode);
+		m_numParents[nnode] = 0;
+		m_parents[nnode] = 0;
+		if (IS_VECTOR(pf)) {
+			m_numParents[nnode] = length(pf);
+			pn = INTEGER_POINTER(pf);
+			m_parents[nnode] = (int*) CATNET_MALLOC(m_numParents[nnode] * sizeof(int));
+			for(i = 0; i < m_numParents[nnode]; i++) {
+				m_parents[nnode][i] = pn[i] - 1;
+			}
+		}
+
+		pf = VECTOR_ELT(rcatlist, nnode);
+		m_numCategories[nnode] = length(pf);
+	}
+
+	// get probabilities
+	if(!strcmp(CHAR(asChar(rname)), "catNetworkC")) {
+		for (nnode = 0; nnode < m_numNodes; nnode++) {
+			rnodeprob = VECTOR_ELT(rproblist, nnode);
+			setCondProb(nnode, NUMERIC_POINTER(rnodeprob), length(rnodeprob));   
+		}
+	}
+	else {
+		for (nnode = 0; nnode < m_numNodes; nnode++) {
+			nodepars = VECTOR_ELT(rparents, nnode);
+			nodeproblist = VECTOR_ELT(rproblist, nnode);
+			pvec = 0;
+			nvec = 0;
+			gen_prob_vector(nnode, nodepars, 0, rcatlist, nodeproblist, pvec, nvec);
+			setCondProb(nnode, pvec, nvec);
+			CATNET_FREE(pvec);
+		}
+	}
+
+	UNPROTECT(5);
 }
 
-SEXP catnetJointProb(SEXP cnet, SEXP rnode)
-{
-	int node, jointprobsize;
-	SEXP rvec = R_NilValue;
-	double *pvec;
+SEXP RCatnet::genRcatnet(const char * objectName = (const char*)"catNetwork") {
 
-	PROTECT(rnode = AS_INTEGER(rnode));
-	node = INTEGER_VALUE(rnode);
-	UNPROTECT(1);
+	char str[256];
+	int node, i, *pslotcats, *pn;
+	double *pf, floglik;
+	SEXP plist, ppars, pcats, pnodeprobs, strnames, pint, pstr;
 
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-
-	if(!rnet)
-		return rvec;
-	if(node < 1 || node > rnet->numNodes())
-		return rvec;
-	node--;
-
-	jointprobsize = 0;
-	double *pjoint = rnet->findJointProb(node, jointprobsize);
-	if(!pjoint) {
-		delete rnet;
-		return rvec;
-	}
-
-	PROTECT(rvec = NEW_NUMERIC(jointprobsize));
-	pvec = NUMERIC_POINTER(rvec);
-	if (pvec && pjoint)
-		memcpy(pvec, pjoint, jointprobsize*sizeof(double));
-	UNPROTECT(1);
-
-	CATNET_FREE(pjoint);
-
-	delete rnet;
-	return rvec;
-}
-
-SEXP catnetFindParentPool(SEXP cnet, SEXP rnode)
-{
-	int node, i, poolsize;
-	SEXP rvec = R_NilValue;
-	int *ppool, *pvec;
-
-	PROTECT(rnode = AS_INTEGER(rnode));
-	node = INTEGER_VALUE(rnode);
-	UNPROTECT(1);
-
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-
-	if(!rnet)
-		return rvec;
-
-	if(node < 1 || node > rnet->numNodes())
-		return rvec;
-	node--;
-
-	ppool = rnet->findParentPool(node, poolsize);
-	if (!ppool) {
-		delete rnet;
-		return rvec;
-	}
-
-	PROTECT(rvec = NEW_INTEGER(poolsize));
-	pvec = INTEGER_POINTER(rvec);
-	for(i = 0; i < poolsize; i++) {
-		pvec[i] = ppool[i]+1;
-	}
-	UNPROTECT(1);
-
-	CATNET_FREE(ppool);
-
-	delete rnet;
-	return rvec;
-}
-
-SEXP show_catnet(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist)
-{
-	int i, nlen, m_numNodes, nnode;
-	char *strbuff;
-	SEXP pf, pstr;
-
-	m_numNodes = length(rnodes);
-	strbuff = (char*)CATNET_MALLOC(16+m_numNodes*m_numNodes*(2+MAX_NODE_NAME));
-	if (!strbuff) {
+	if(strcmp(objectName, "catNetwork") && strcmp(objectName, "catNetworkC") ) 
 		return R_NilValue;
+
+	SEXP cnet = PROTECT(NEW_OBJECT(MAKE_CLASS(objectName)));
+
+	PROTECT(plist = allocVector(STRSXP, 1));
+	SET_STRING_ELT(plist, 0, mkChar(objectName));
+	SET_SLOT(cnet, install("objectName"), plist);
+	UNPROTECT(1);
+
+	PROTECT(pint = NEW_INTEGER(1));
+	INTEGER_POINTER(pint)[0] = m_numNodes;
+	SET_SLOT(cnet, install("numnodes"), pint);
+	UNPROTECT(1);
+
+	PROTECT(strnames = allocVector(STRSXP, m_numNodes));
+	for(node = 0; node < m_numNodes; node++) {
+		if(m_nodeNames && m_nodeNames[node]) {
+			SET_STRING_ELT(strnames, node, mkChar(m_nodeNames[node]));
+		}
+		else {
+			sprintf(str, "N%d", node+1);
+			SET_STRING_ELT(strnames, node, mkChar(str));
+		}
 	}
+	SET_SLOT(cnet, install("nodes"), strnames);
+ 	UNPROTECT(1);
+
+	PROTECT(pint = NEW_INTEGER(1));
+	INTEGER_POINTER(pint)[0] = m_maxParents;
+	SET_SLOT(cnet, install("maxParents"), pint);
+	UNPROTECT(1);
+
+	PROTECT(plist = allocVector(VECSXP, m_numNodes));
+	for(node = 0; node < m_numNodes; node++) {
+		if(m_numParents[node] <= 0) {
+			SET_VECTOR_ELT(plist, node, R_NilValue);
+			continue;
+		}
+		PROTECT(ppars = NEW_INTEGER(m_numParents[node]));
+		pn = INTEGER_POINTER(ppars);
+		for(i = 0; i < m_numParents[node]; i++)
+			// remember to increase the index by 1
+			pn[i] = m_parents[node][i] + 1;
+		SET_VECTOR_ELT(plist, node, ppars);
+		UNPROTECT(1);
+	}
+	SET_SLOT(cnet, install("parents"), plist);
+	UNPROTECT(1);
+
+	PROTECT(pint = NEW_INTEGER(1));
+	INTEGER_POINTER(pint)[0] = m_maxCategories;
+	SET_SLOT(cnet, install("maxCategories"), pint);
+	UNPROTECT(1);
+
+	PROTECT(plist = allocVector(VECSXP, m_numNodes));
+	for(node = 0; node < m_numNodes; node++) {
+		if(m_numCategories[node] > m_maxCategories)
+			break;
+		PROTECT(pcats = allocVector(STRSXP, m_numCategories[node]));
+		for(i = 0; i < m_numCategories[node]; i++) {
+			if(m_catIndices && m_catIndices[node])
+				sprintf(str, "%d", m_catIndices[node][i]);
+			else
+				sprintf(str, "C%d", i+1);
+			SET_STRING_ELT(pcats, i, mkChar(str));
+		}
+		SET_VECTOR_ELT(plist, node, pcats);
+		UNPROTECT(1);
+	}
+	SET_SLOT(cnet, install("categories"), plist);
+	UNPROTECT(1); /* plist */
+
+	pslotcats = (int*)CATNET_MALLOC(m_maxParents*sizeof(int));
+	PROTECT(plist = allocVector(VECSXP, m_numNodes));
+	if(!strcmp(objectName, "catNetworkC")) {	
+		for(node = 0; node < m_numNodes; node++) {
+			if(!m_pProbLists[node])
+				continue;
+			PROTECT(pnodeprobs = NEW_NUMERIC(m_pProbLists[node]->nProbSize));
+			pf = NUMERIC_POINTER(pnodeprobs);
+			if (pf && m_pProbLists[node]->pProbs) {
+				memcpy(pf, m_pProbLists[node]->pProbs, m_pProbLists[node]->nProbSize * sizeof(double));
+			}
+			SET_VECTOR_ELT(plist, node, pnodeprobs);
+			UNPROTECT(1);
+		}
+	}
+	else { 
+		for(node = 0; node < m_numNodes; node++) {
+			if (pslotcats) {
+				memset(pslotcats, 0, m_maxParents*sizeof(int));
+			}
+			pnodeprobs = genProbList(node, 0, pslotcats);
+			SET_VECTOR_ELT(plist, node, pnodeprobs);
+			if(pnodeprobs != R_NilValue)
+				UNPROTECT(1);
+		}
+	}
+	SET_SLOT(cnet, install("probabilities"), plist);
+	UNPROTECT(1); /* plist */
+
+	if (pslotcats)
+		CATNET_FREE(pslotcats);
+
+	pstr = PROTECT(mkString("catNetwork object"));
+	SET_SLOT(cnet, install("meta"), pstr);
+	UNPROTECT(1); /* pstr */
+
+	PROTECT(pint = NEW_INTEGER(1));
+	INTEGER_POINTER(pint)[0] = complexity();
+	SET_SLOT(cnet, install("complexity"), pint);
+	UNPROTECT(1); /* pint */
+	
+	PROTECT(pint = NEW_NUMERIC(1));
+	floglik = loglik();
+	if(floglik > -FLT_MAX)
+		NUMERIC_POINTER(pint)[0] = floglik;
+	else
+		NUMERIC_POINTER(pint)[0] = R_NegInf;
+
+	SET_SLOT(cnet, install("likelihood"), pint);
+	UNPROTECT(1); /* pint */
+
+	PROTECT(pint = NEW_INTEGER(m_numNodes));
+	INTEGER_POINTER(pint)[0] = m_numNodes;
+	for(node = 0; node < m_numNodes; node++) {
+		if(m_pProbLists[node])
+			INTEGER_POINTER(pint)[node] = m_pProbLists[node]->sampleSize;
+	}
+	SET_SLOT(cnet, install("nodeSampleSizes"), pint);
+	UNPROTECT(1); /* pint */
+
+	UNPROTECT(1); /* cnet */
+	return cnet;
+}
+
+SEXP RCatnet::genProbList(int node, int paridx, int *pcats) {
+	int j, npar;
+	SEXP problist, childlist;
+	double *pslot, *pp;
+
+	if(m_pProbLists == 0 || m_pProbLists[node] == 0 || paridx < 0)
+		return R_NilValue;
+
+	if(paridx >= m_numParents[node]) {
+		pslot = m_pProbLists[node]->find_slot(0, pcats, 0);
+		PROTECT(problist = NEW_NUMERIC(m_numCategories[node]));
+		pp = NUMERIC_POINTER(problist);
+		if (pp && pslot) {
+			memcpy(pp, pslot, m_numCategories[node]*sizeof(double));
+		}
+		return problist;
+	}
+
+	npar = m_parents[node][paridx];
+	PROTECT(problist = allocVector(VECSXP, m_numCategories[npar]));
+	for(j = 0; j < m_numCategories[npar]; j++) {
+		pcats[paridx] = j;
+        childlist = genProbList(node, paridx + 1, pcats);
+		SET_VECTOR_ELT(problist, j, childlist);
+        if (childlist != R_NilValue)
+		    UNPROTECT(1);
+	}
+
+	return problist;
+}
+
+char *gen_prob_string(int node, SEXP parlist, int paridx, SEXP catlist, SEXP problist, char *str) {
+	int j, npar, nlen;
+	SEXP parprobs, pcats;
+	char *newstr, *aux, *aux2, *aux3;
+
+	if(!str) {
+		str = (char*)CATNET_MALLOC(1);
+		str[0] = 0;
+	}
+	if(!str) 
+		return 0;
+
+	if(paridx >= length(parlist)) {
+		pcats = VECTOR_ELT(catlist, node);
+		newstr = (char*)CATNET_MALLOC(((strlen(str)+1+32)*length(pcats))*sizeof(char));
+		if (!newstr) {
+			CATNET_FREE(str);
+			return 0;
+		}
+		nlen = 0;
+		for(j = 0; j < length(pcats); j++) {
+			nlen += sprintf(newstr+nlen, "%s%s %f\n", str, CHAR(STRING_ELT(pcats, j)), NUMERIC_POINTER(problist)[j]);
+		}
+		CATNET_FREE(str);
+		str = newstr;
+		return str;
+	}
+
+	npar = INTEGER_POINTER(parlist)[paridx] - 1;
+	pcats = VECTOR_ELT(catlist, npar);
+
+	newstr = (char*)CATNET_MALLOC(sizeof(char));
+	if (!newstr) {
+		CATNET_FREE(str);
+		return 0;
+	}
+
+	newstr[0] = 0;
+	for(j = 0; j < length(pcats); j++) {
+		parprobs = VECTOR_ELT(problist, j);
+
+		aux = (char*)CATNET_MALLOC((strlen(str)+1+8)*sizeof(char));
+		if (aux)
+			sprintf(aux, "%s%s", str, CHAR(STRING_ELT(pcats, j)));
+		aux2 = gen_prob_string(node, parlist, paridx + 1, catlist, parprobs, aux);
+
+		aux3 = (char*)CATNET_MALLOC((strlen(newstr)+strlen(aux2)+2)*sizeof(char));
+		if (aux3)
+			sprintf(aux3, "%s%s", newstr, aux2);
+		CATNET_FREE(newstr);
+		newstr = aux3;
+
+		CATNET_FREE(aux2);
+	}
+	CATNET_FREE(str);
+	str = newstr;
+
+	return str;
+}
+
+SEXP prob_string(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist) {
+
+	int node;
+	SEXP nodepars, nodeproblist, pstr;
+	char *str = NULL, *newstr, *aux;
 
 	PROTECT(rnodes = AS_LIST(rnodes));
 	PROTECT(rparents = AS_LIST(rparents));
 	PROTECT(rcatlist = AS_LIST(rcatlist));
 	PROTECT(rproblist = AS_LIST(rproblist));
-	PROTECT(pstr = allocVector(STRSXP, 3));
 
-	nlen = sprintf(strbuff, "Nodes = %d: ", m_numNodes);
-	for(nnode = 0; nnode < m_numNodes; nnode++) {
-		PROTECT(pf = VECTOR_ELT(rnodes, nnode));
-		if(IS_VECTOR(pf)) {
-			nlen += sprintf(strbuff+nlen, "%s, ", CHAR(STRING_ELT(pf, 0)));
+	for(node = 0; node < length(rnodes); node++) {
+		nodepars = VECTOR_ELT(rparents, node);
+		nodeproblist = VECTOR_ELT(rproblist, node);
+		newstr = gen_prob_string(node, nodepars, 0, rcatlist, nodeproblist, NULL);
+		if(str && newstr) {
+			aux = (char*)CATNET_MALLOC((strlen(str)+strlen(newstr)+1+16)*sizeof(char));
+			if (aux)
+				sprintf(aux, "%sNode [%d]:\n%s", str, node, newstr);
+			CATNET_FREE(str);
+			CATNET_FREE(newstr);
+			str = aux;
 		}
-		UNPROTECT(1);
-	}
-	nlen += sprintf(strbuff+nlen, "\n");
-	SET_STRING_ELT(pstr, 0, mkChar(strbuff));
-
-	nlen = sprintf(strbuff, "Parents:\n");
-	for(nnode = 0; nnode < m_numNodes; nnode++) {
-		PROTECT(pf = VECTOR_ELT(rparents, nnode));
-		nlen += sprintf(strbuff+nlen, "[%d] ", nnode);
-		if(IS_VECTOR(pf)) {
-			for(i = 0; i < length(pf); i++)
-				nlen += sprintf(strbuff+nlen, "%d, ", INTEGER_POINTER(pf)[i]-1);
-			nlen += sprintf(strbuff+nlen, "\n");
+		else {
+			CATNET_FREE(str);
+			str = newstr;
 		}
-		else 
-			nlen += sprintf(strbuff+nlen, "\n");
-		UNPROTECT(1);
 	}
-	SET_STRING_ELT(pstr, 1, mkChar(strbuff));
 
-	nlen = sprintf(strbuff, "Categories:\n");
-	for(nnode = 0; nnode < m_numNodes; nnode++) {
-		PROTECT(pf = VECTOR_ELT(rcatlist, nnode));
-		if(IS_VECTOR(pf)) {
-			for(i = 0; i < length(pf); i++)
-				nlen += sprintf(strbuff+nlen, "%s, ", CHAR(STRING_ELT(pf,i)));
-			nlen += sprintf(strbuff+nlen, "\n");
-		}
-		UNPROTECT(1);
-	}
-	SET_STRING_ELT(pstr, 2, mkChar(strbuff));
+	UNPROTECT(4);
 
-	UNPROTECT(5);
-
-	CATNET_FREE(strbuff);
+	PROTECT(pstr = allocVector(STRSXP, 1));
+	SET_STRING_ELT(pstr, 0, mkChar(str));
+	UNPROTECT(1);
 
 	return pstr;
 }
 
-SEXP showCatnet(SEXP cnet)
-{
-	SEXP rnodes, rparents, rcatlist, rproblist;
 
-	PROTECT(cnet);
-	//if(isS4(cnet))
-	//	printf("cnet is an object\n");
+void gen_prob_vector(int node, SEXP parlist, int paridx, SEXP catlist, SEXP problist, double *&pvec, int &nvec) {
+	int j, npar;
+	SEXP parprobs, pcats;
+	double *newvec;
 
-	rnodes = GET_SLOT(cnet, install("nodes"));
-	//if(IS_VECTOR(m_nodeNames))
-	//	printf("m_nodeNames is a vector\n");
-	rparents = GET_SLOT(cnet, install("parents"));
-	rcatlist = GET_SLOT(cnet, install("categories"));
-	rproblist = GET_SLOT(cnet, install("probabilities"));
-
-	if(rnodes == R_NilValue || rparents == R_NilValue || rcatlist == R_NilValue || rproblist == R_NilValue) {
-		UNPROTECT(1);
-		return R_NilValue;
+	if(!pvec) {
+		pvec = (double*)CATNET_MALLOC(sizeof(double));
+		nvec = 0;
 	}
+	if(!pvec) 
+		return;
 
-	SEXP res = show_catnet(rnodes, rparents, rcatlist, rproblist);
-
-	UNPROTECT(1);
-
-	return res;
-}
-
-SEXP catnetOptimalNetsForOrder(SEXP rSamples, SEXP rPerturbations, 
-	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, 
-	SEXP rOrder, SEXP rNodeCats, 
-	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMatEdgeLiks, 
-	SEXP rUseCache, SEXP rEcho) {
-
-	//if(!isMatrix(rSamples))
-	//	error("Data is not a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations should be a matrix");
-	if(!isInteger(AS_INTEGER(rMaxParents)))
-		error("maxParents should be an integer");
-	if(!isNull(rParentSizes) && !isVector(rParentSizes))
-		error("ParentSizes should be a vector");
-	if(!isInteger(AS_INTEGER(rMaxComplexity)))
-		error("maxComplexity should be an integer");
-	if(!isVector(rOrder))
-		error("Order should be a vector");
-	if(!isNull(rNodeCats) && !isVector(rNodeCats))
-		error("NodeCats should be a list");
-	if(!isNull(rParentsPool) && !isVector(rParentsPool))
-		error("ParentsPool should be a list");
-	if(!isNull(rFixedParentsPool) && !isVector(rFixedParentsPool))
-		error("FixedParentsPool should be a list");
-	if(!isNull(rMatEdgeLiks) && !isMatrix(rMatEdgeLiks))
-		error("rMatEdgeLiks should be a matrix");
-	if(!isNull(rUseCache) && !isLogical(rUseCache))
-		error("UseCache should be logical");
-	if(!isNull(rEcho) && !isLogical(rEcho))
-		error("Echo should be logical");
-
-	RCatnetSearch * pengine = new RCatnetSearch;
-	SEXP res = pengine -> estimateCatnets(rSamples, rPerturbations, 
-						rMaxParents, rParentSizes, 
-						rMaxComplexity, rOrder, rNodeCats, 
-				                rParentsPool, rFixedParentsPool, rMatEdgeLiks, 
-						rUseCache, rEcho);
-	delete pengine;
-
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//printf(str);
-
-	return res;
-}
-
-SEXP catnetOptimalNetsSA(SEXP rNodeNames, SEXP rSamples, SEXP rPerturbations, 
-	SEXP rMaxParents, SEXP rParentSizes, SEXP rMaxComplexity, SEXP rNodeCats, 
-	SEXP rParentsPool, SEXP rFixedParentsPool, SEXP rMaxParentsPool, 
-	SEXP rMatEdgeLiks, SEXP rDirProbs, 
-	SEXP rModel, SEXP rStartOrder,
-	SEXP rTempStart, SEXP rTempCoolFact, SEXP rTempCheckOrders, 
-	SEXP rMaxIter, SEXP rOrderShuffles, SEXP rStopDiff, 
-	SEXP rThreads, SEXP rUseCache, SEXP rEcho) {
-
-	//if(!isMatrix(rSamples))
-	//	error("Data is not a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations should be a matrix");
-	if(!isInteger(AS_INTEGER(rMaxParents)))
-		error("maxParents should be an integer");
-	if(!isNull(rParentSizes) && !isVector(rParentSizes))
-		error("ParentSizes should be a vector");
-	if(!isInteger(AS_INTEGER(rMaxComplexity)))
-		error("maxComplexity should be an integer");
-	if(!isVector(rStartOrder))
-		error("startOrder should be a vector");
-	if(!isNull(rNodeCats) && !isVector(rNodeCats))
-		error("NodeCats should be a list");
-	if(!isNull(rParentsPool) && !isVector(rParentsPool))
-		error("ParentsPool should be a list");
-	if(!isNull(rFixedParentsPool) && !isVector(rFixedParentsPool))
-		error("FixedParentsPool should be a list");
-	if(!isInteger(AS_INTEGER(rMaxParentsPool)))
-		error("maxParentsPool should be an integer");
-	if(!isNull(rMatEdgeLiks) && !isMatrix(rMatEdgeLiks))
-		error("rMatEdgeLiks should be a matrix");
-	if(!isNull(rDirProbs) && !isMatrix(rDirProbs))
-		error("rDirProbs should be a matrix");
-	if(!isNumeric(AS_NUMERIC(rTempStart)))
-		error("tempStart should be numerical");
-	if(!isNumeric(AS_NUMERIC(rTempCoolFact)))
-		error("coolFact should be numerical");
-	if(!isNumeric(AS_NUMERIC(rTempCheckOrders)))
-		error("tempCheckOrders should be numerical");
-	if(!isInteger(AS_INTEGER(rMaxIter)))
-		error("maxIter should be an integer");
-	if(!isNumeric(AS_NUMERIC(rStopDiff)))
-		error("stopDiff should be numerical");
-	if(!isNumeric(AS_NUMERIC(rOrderShuffles)))
-		error("orderShuffles should be numerical");
-	if(!isInteger(AS_INTEGER(rThreads)))
-		error("Threads should be an integer");
-	if(!isNull(rUseCache) && !isLogical(rUseCache))
-		error("UseCache should be logical");
-	if(!isNull(rEcho) && !isLogical(rEcho))
-		error("Echo should be logical");
-
-	RCatnetSearchSA * pengine = new RCatnetSearchSA;
-	SEXP res = pengine -> search(rNodeNames, rSamples, rPerturbations, 
-			rMaxParents, rParentSizes, rMaxComplexity, rNodeCats, 
-			rParentsPool, rFixedParentsPool, rMaxParentsPool, 
-			rMatEdgeLiks, rDirProbs, 
-			rModel, rStartOrder,
-			rTempStart, rTempCoolFact, rTempCheckOrders, 
-			rMaxIter, rOrderShuffles, rStopDiff, 
-			rThreads, rUseCache, rEcho);
-	delete pengine;
-
-	//char str[128];
-	//sprintf(str, "Mem Balance %d\n", (int)g_memcounter);
-	//printf(str);
-
-	return res;
-}
-
-SEXP catnetParHistogram(SEXP rSamples, SEXP rPerturbations, 
-	SEXP rMaxParents, SEXP rParentSizes, 
-	SEXP rMaxComplexity, SEXP rNodeCats, 
-	SEXP rParentsPool, SEXP rFixedParentsPool, 
-	SEXP rScore, SEXP rWeight, SEXP rMaxIter,
-	SEXP rThreads, SEXP rUseCache, SEXP rEcho)
-{
-	//if(!isMatrix(rSamples))
-	//	error("Data is not a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations should be a matrix");
-	if(!isInteger(AS_INTEGER(rMaxParents)))
-		error("maxParents should be an integer");
-	if(!isNull(rParentSizes) && !isVector(rParentSizes))
-		error("ParentSizes should be a vector");
-	if(!isInteger(AS_INTEGER(rMaxComplexity)))
-		error("maxComplexity should be an integer");
-	if(!isNull(rNodeCats) && !isVector(rNodeCats))
-		error("NodeCats should be a list");
-	if(!isNull(rParentsPool) && !isVector(rParentsPool))
-		error("ParentsPool should be a list");
-	if(!isNull(rFixedParentsPool) && !isVector(rFixedParentsPool))
-		error("FixedParentsPool should be a list");
-	if(!isInteger(AS_INTEGER(rMaxIter)))
-		error("maxIter should be an integer");
-	if(!isInteger(AS_INTEGER(rWeight)))
-		error("weight should be an integer");
-	if(!isInteger(AS_INTEGER(rThreads)))
-		error("Threads should be an integer");
-	if(!isNull(rUseCache) && !isLogical(rUseCache))
-		error("UseCache should be logical");
-	if(!isNull(rEcho) && !isLogical(rEcho))
-		error("Echo should be logical");
-
-	RCatnetSearchHist * pengine = new RCatnetSearchHist;
-	SEXP res = pengine -> search(rSamples, rPerturbations, 
-			rMaxParents, rParentSizes, rMaxComplexity, rNodeCats, 
-			rParentsPool, rFixedParentsPool, 
-			rScore, rWeight, rMaxIter, 
-			rThreads, rUseCache, rEcho);
-	delete pengine;
-
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//printf(str);
-
-	return res;
-}
-
-SEXP catnetSetProb(SEXP cnet, SEXP rSamples, SEXP rPerturbations) {
-
-	int *pSamples, *psubSamples, *pPerturbations;
-	int nnode, numsamples, numnodes, numsubsamples, j;
-	SEXP dim;
-	SEXP pcnet = R_NilValue;
-
-	if(!isMatrix(rSamples))
-		error("Data is not a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations is not a vector");
-
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-
-	dim = GET_DIM(rSamples);
-	numnodes = INTEGER(dim)[0];
-	numsamples = INTEGER(dim)[1];
-
-	////////////////////////////////////////
-	// Danger Ahead
-	// We don's check that sample nodes actually correspond to the cnet's nodes
-	// Missmatch of categories possible
-
-	// pSamples are assumed positive indices
-	for(j = 0; j < numnodes*numsamples; j++) {
-		if(R_IsNA(pSamples[j]) || pSamples[j] < 1)
-			pSamples[j] = CATNET_NAN;
-		else
-			pSamples[j]--;
-	}
-
-	psubSamples = 0;
-	pPerturbations = 0;
-	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER_POINTER(rPerturbations);
-		psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
-	}
-
-	for(nnode = 0; nnode < numnodes; nnode++) {
-		if(pPerturbations && psubSamples) {
-			numsubsamples = 0;
-			for(j = 0; j < numsamples; j++) {		
-				if(!pPerturbations[j * numnodes + nnode]) {
-					memcpy(psubSamples + numsubsamples*numnodes, 
-						pSamples + j*numnodes, numnodes*sizeof(int));
-					numsubsamples++;
-				}
+	if(paridx >= length(parlist)) {
+		pcats = VECTOR_ELT(catlist, node);
+		if (length(problist) != length(pcats)) {
+			Rprintf("gen_prob_vector: %d:  %d, %d\n", node, length(problist), length(pcats));
+			error("Wrong probability table");
+			return;
+		}
+		newvec = (double*)CATNET_MALLOC((nvec + length(pcats))*sizeof(double));
+		if (newvec) {
+			memcpy(newvec, pvec, nvec*sizeof(double));
+			for(j = 0; j < length(pcats); j++) {
+				newvec[nvec+j] = NUMERIC_POINTER(problist)[j];
 			}
-			rnet->setNodeSampleProb(nnode, psubSamples, numsubsamples, 1);
 		}
-		else {
-			rnet->setNodeSampleProb(nnode, pSamples, numsamples, 1);
-		}
+		CATNET_FREE(pvec);
+		pvec = newvec;
+		nvec += length(pcats);
+		return;
 	}
 
-	UNPROTECT(1);
-	if(pPerturbations) {
+	npar = INTEGER_POINTER(parlist)[paridx] - 1;
+	pcats = VECTOR_ELT(catlist, npar);
+	if (length(problist) != length(pcats)) {
+		Rprintf("gen_prob_vector: %d:  %d, %d\n", node, length(problist), length(pcats));
+		error("Wrong probability table");
+		return;
+	}
+	for(j = 0; j < length(pcats); j++) {
+		parprobs = VECTOR_ELT(problist, j);
+		gen_prob_vector(node, parlist, paridx + 1, catlist, parprobs, pvec, nvec);
+	}
+}
+
+SEXP prob_vector(SEXP rnodes, SEXP rparents, SEXP rcatlist, SEXP rproblist) {
+
+	int node, nvec;
+	SEXP nodepars, nodeproblist, pstr;
+	SEXP rvec;
+	double *pvec, *prvec;
+
+	PROTECT(rnodes = AS_LIST(rnodes));
+	PROTECT(rparents = AS_LIST(rparents));
+	PROTECT(rcatlist = AS_LIST(rcatlist));
+	PROTECT(rproblist = AS_LIST(rproblist));
+
+	PROTECT(pstr = allocVector(VECSXP, length(rnodes)));
+
+	for(node = 0; node < length(rnodes); node++) {
+		nodepars = VECTOR_ELT(rparents, node);
+		nodeproblist = VECTOR_ELT(rproblist, node);
+		pvec = 0;
+		nvec = 0;
+		gen_prob_vector(node, nodepars, 0, rcatlist, nodeproblist, pvec, nvec);
+		PROTECT(rvec = NEW_NUMERIC(nvec));
+		prvec = NUMERIC_POINTER(rvec);
+		if (prvec && pvec)
+			memcpy(prvec, pvec, nvec*sizeof(double));
+		CATNET_FREE(pvec);
+		SET_VECTOR_ELT(pstr, node, rvec);
 		UNPROTECT(1);
 	}
 
-	if(psubSamples)
-		CATNET_FREE(psubSamples);
-	pcnet = rnet->genRcatnet((const char*)"catNetwork");
-	delete rnet;
-
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//printf(str);
-
-	return pcnet;
-
+	UNPROTECT(5);
+	return pstr;
 }
 
-SEXP catnetLoglik(SEXP cnet, SEXP rSamples, SEXP rPerturbations, SEXP rBySample) {
-
-	int *pSamples, *pPerturbations;
-	int numsamples, numnodes, j, bysample;
-	double *floglik, *pvec;
-	SEXP dim, rvec = R_NilValue;
-
-	if(!isMatrix(rSamples))
-		error("Data should be a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations should be a matrix");
-
-	bysample = 0;
-	PROTECT(rBySample = AS_LOGICAL(rBySample));
-	bysample = LOGICAL(rBySample)[0];
-	UNPROTECT(1);
-
-	////////////////////////////////////////
-	// Danger Ahead
-	// We don's check that sample nodes actually correspond to the cnet's nodes
-	// Missmatch of categories possible
-
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-
-	dim = GET_DIM(rSamples);
-	numnodes = INTEGER(dim)[0];
-	numsamples = INTEGER(dim)[1];
-
-	// pSamples are assumed positive indices
-	for(j = 0; j < numnodes*numsamples; j++) {
-		if(R_IsNA(pSamples[j]) || pSamples[j] < 1)
-			pSamples[j] = CATNET_NAN;
-		else
-			pSamples[j]--;
-	}
-
-	pPerturbations = 0;
-	if(!isNull(rPerturbations)) {
-		PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-		pPerturbations = INTEGER_POINTER(rPerturbations);
-	}
-
-	if(bysample)
-		floglik = rnet->bySampleLoglikVector(pSamples, numsamples, pPerturbations);
-	else
-		floglik = rnet->sampleLoglikVector(pSamples, numsamples, pPerturbations);
-
-	UNPROTECT(1);
-	delete rnet;
-
-	if(pPerturbations)
-		UNPROTECT(1);
-
-	if(floglik) {
-		if(bysample) {
-			PROTECT(rvec = NEW_NUMERIC(numsamples));
-			pvec = NUMERIC_POINTER(rvec);
-			for(j = 0; j < numsamples; j++) {
-				pvec[j] =  R_NegInf;
-				if(floglik[j] > -FLT_MAX)
-					pvec[j] = floglik[j];
-			}
-		}
-		else {
-			PROTECT(rvec = NEW_NUMERIC(numnodes));
-			pvec = NUMERIC_POINTER(rvec);
-			for(j = 0; j < numnodes; j++) {
-				pvec[j] =  R_NegInf;
-				if(floglik[j] > -FLT_MAX)
-					pvec[j] = floglik[j];
-			}
-		}
-		UNPROTECT(1);
-		CATNET_FREE(floglik);
-	}
-
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//printf(str);
-
-	return rvec;
-
-}
-
-
-SEXP catnetNodeLoglik(SEXP cnet, SEXP rNode, SEXP rSamples, SEXP rPerturbations) {
-
-	int *pSamples, *pPerturbations;
-	int *psubSamples, numsubsamples;
-	int numsamples, numnodes, i, j, nnode, nnodes, *pnodes;
-	double floglik, *pvec;
-	SEXP dim, rvec = R_NilValue;
-
-	if(!isMatrix(rSamples))
-		error("Data should be a matrix");
-	if(!isNull(rPerturbations) && !isMatrix(rPerturbations))
-		error("Perturbations should be a matrix");
-	if(!isInteger(AS_INTEGER(rNode)))
-		error("Node should be an integer");
-
-	////////////////////////////////////////
-	// Danger Ahead
-	// We don's check that sample nodes actually correspond to the cnet's nodes
-	// Missmatch of categories possible
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
-	UNPROTECT(1);
-
-	nnodes = length(rNode);
-	if(nnodes < 1)
-		return rvec;
-	pnodes = (int*)CATNET_MALLOC(nnodes*sizeof(int));
-	PROTECT(rNode = AS_INTEGER(rNode));
-	if (pnodes && INTEGER_POINTER(rNode))
-		memcpy(pnodes, INTEGER_POINTER(rNode), nnodes*sizeof(int));
-	UNPROTECT(1);
-
-	PROTECT(rSamples = AS_INTEGER(rSamples));
-	pSamples = INTEGER(rSamples);
-
-	dim = GET_DIM(rSamples);
-	numnodes = INTEGER(dim)[0];
-	numsamples = INTEGER(dim)[1];
-
-	// pSamples are assumed positive indices
-	for(j = 0; j < numnodes*numsamples; j++) {
-		if(R_IsNA(pSamples[j]) || pSamples[j] < 1)
-			pSamples[j] = CATNET_NAN;
-		else
-			pSamples[j]--;
-	}
-	PROTECT(rvec = NEW_NUMERIC(nnodes));
-	pvec = NUMERIC_POINTER(rvec);
-
-	for(i = 0; i < nnodes; i++) { 
-		nnode = pnodes[i] - 1;
-		psubSamples = 0;
-		pPerturbations = 0;
-		floglik = -FLT_MAX;
-		if(!isNull(rPerturbations)) {
-			PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
-			pPerturbations = INTEGER_POINTER(rPerturbations);
-			psubSamples = (int*)CATNET_MALLOC(numnodes*numsamples*sizeof(int));
-			if (psubSamples) {
-				numsubsamples = 0;
-				for(j = 0; j < numsamples; j++) {
-					if(!pPerturbations[j * numnodes + nnode]) {
-						memcpy(psubSamples + numsubsamples*numnodes, pSamples + j*numnodes, numnodes*sizeof(int));
-						numsubsamples++;
-					}
-				}
-				floglik = rnet->sampleNodeLoglik(nnode, psubSamples, numsubsamples);
-				CATNET_FREE(psubSamples);
-			}
-			UNPROTECT(1);
-		}
-		else
-			floglik = rnet->sampleNodeLoglik(nnode, pSamples, numsamples);
-
-		pvec[i] = R_NegInf;
-		if(floglik > -FLT_MAX)
-			pvec[i] =  floglik;
-	}
-
-	UNPROTECT(2); // rSamples, rvec
-
-	delete rnet;
-	CATNET_FREE(pnodes);
-
-	//char str[128];
-	//sprintf(str, "Mem Balance  %d\n", (int)g_memcounter);
-	//Rprintf(str);
-
-	return rvec;
-
-}
-
-SEXP catnetSamples(SEXP cnet, SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
+SEXP RCatnet::genSamples(SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate) {
 
 	SEXP rsamples = R_NilValue;
-
-	if(!isInteger(rNumSamples))
-		error("rNumSamples should be integer");
-	if(!isNumeric(AS_NUMERIC(rNaRate)))
-		error("rNaRate should be numerical between 0 and 1");
-
-	PROTECT(cnet);
-	RCatnet *rnet = new RCatnet(cnet);
+	int numsamples;
+	int *pSamples, *pRsamples, *pPerturbations;
+	double fNaRate;
+	int i, j, k, nnode, *pnodepars, *pnodesample, *porder;
+	double u, v, *pnodeprob;
+	PROB_LIST<double> *pProbList; 
+	
+	PROTECT(rNumSamples = AS_INTEGER(rNumSamples));
+	numsamples = INTEGER_POINTER(rNumSamples)[0];
 	UNPROTECT(1);
-	if(!rnet)
+
+	PROTECT(rNaRate = AS_NUMERIC(rNaRate));
+	fNaRate = NUMERIC_POINTER(rNaRate)[0];
+	UNPROTECT(1);
+
+	porder = getOrder();
+	if(!porder)
 		return R_NilValue;
 
-	rsamples = rnet->genSamples(rNumSamples, rPerturbations, rNaRate);
+	pSamples = (int*)CATNET_MALLOC(m_numNodes*numsamples*sizeof(int));
+	if(!pSamples) {
+		CATNET_FREE(porder);
+		return R_NilValue;
+	}
 
-	delete rnet;
+	pnodesample = 0;
+	if(m_maxParents > 0) {
+		pnodesample = (int*)CATNET_MALLOC(m_maxParents * sizeof(int));
+		if(!pnodesample) {
+			CATNET_FREE(pSamples);
+			CATNET_FREE(porder);
+			return R_NilValue;
+		}
+	}
+
+	PROTECT(rPerturbations = AS_INTEGER(rPerturbations));
+	pPerturbations = NULL;
+	if(!isNull(rPerturbations)) {
+		pPerturbations = INTEGER_POINTER(rPerturbations);
+	}
+
+	GetRNGstate();
+	for(k = 0; k < m_numNodes; k++) {
+		nnode = porder[k];
+		pnodepars = m_parents[nnode];
+		pProbList = (PROB_LIST<double>*)getNodeProb(nnode);
+		if (!pProbList) 
+			break;
+
+		for (j = 0; j < numsamples; j++) {
+
+			if(pPerturbations) {
+				if(!R_IsNA(pPerturbations[j*m_numNodes + nnode]) && 
+					pPerturbations[j*m_numNodes + nnode] >= 1 && pPerturbations[j*m_numNodes + nnode] <= m_numCategories[nnode]) {
+					pSamples[j * m_numNodes + nnode] = pPerturbations[j * m_numNodes + nnode];
+					continue;
+				}
+			}
+
+			for (i = 0; i < m_numParents[nnode]; i++) {
+				if (pnodepars[i] < 0 || pnodepars[i] >= m_numNodes)
+					break;
+				pnodesample[i] = (int)(pSamples[j * m_numNodes + pnodepars[i]] - 1);
+			}
+			pnodeprob = pProbList->find_slot(0, pnodesample, 0);
+
+			u = (double)unif_rand();
+			v = 0;
+			for(i = 0; i < m_numCategories[nnode]; i++) {
+				v += pnodeprob[i];
+				if(u <= v)
+					break;
+			}
+			pSamples[j * m_numNodes + nnode] = i + 1;
+		}
+	}
+
+	k = (int)(fNaRate*m_numNodes);
+	if(k > 0 && k < m_numNodes) {
+		int ii, fmax, *paux;
+		paux = (int*)CATNET_MALLOC(m_numNodes*sizeof(int));
+		if (paux) {
+			for (j = 0; j < numsamples; j++) {
+				for(ii = 0; ii < m_numNodes; ii++)
+					paux[ii] = (int)(m_numNodes*unif_rand());
+				for(i = 0; i < k; i++) {
+					nnode = 0;
+					fmax = -(int)RAND_MAX;
+					for(ii = 0; ii < m_numNodes; ii++) {
+						if(fmax < paux[ii]) {
+							fmax = paux[ii];
+							nnode = ii;
+						}
+					}
+					if(nnode >= 0 && nnode < m_numNodes) {
+						paux[nnode] = -(int)RAND_MAX;
+						pSamples[j * m_numNodes + nnode] = R_NaInt;
+					}
+				}
+			}
+			CATNET_FREE(paux);
+		}
+	}
+	PutRNGstate();
+
+	UNPROTECT(1); // rPerturbations
+
+	if(pnodesample)
+		CATNET_FREE(pnodesample);
+	if(porder)
+		CATNET_FREE(porder);
+
+	// output the new matrix
+	PROTECT(rsamples = NEW_INTEGER(m_numNodes * numsamples));
+	pRsamples = (int*)INTEGER_POINTER(rsamples);
+	if (pRsamples && pSamples)
+		memcpy(pRsamples, pSamples, m_numNodes*numsamples*sizeof(int));
+	UNPROTECT(1);
+
+	CATNET_FREE(pSamples);
 
 	return rsamples;
 }
-
-
-SEXP catnetSetSeed(SEXP rSeed)
-{
-	int nSeed;
-
-	if(!isInteger(AS_INTEGER(rSeed)))
-		error("The seed should be an integer");
-
-	PROTECT(rSeed = AS_INTEGER(rSeed));
-	nSeed = INTEGER_POINTER(rSeed)[0];
-	UNPROTECT(1);
-
-	g_setseed = nSeed;
-
-	return(R_NilValue);
-}
-
-} // extern "C"
