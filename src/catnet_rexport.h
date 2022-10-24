@@ -60,6 +60,6 @@ SEXP catnetEntropyOrder(SEXP rSamples, SEXP rPerturbations);
 SEXP catnetKLpairwise(SEXP rSamples, SEXP rPerturbations);
 SEXP catnetPearsonPairwise(SEXP rSamples, SEXP rPerturbations);
 SEXP catnetSamples(SEXP cnet, SEXP rNumSamples, SEXP rPerturbations, SEXP rNaRate);
-SEXP catnetReleaseCache();
+SEXP catnetReleaseCache(void);
 SEXP catnetSetSeed(SEXP rSeed);
 
